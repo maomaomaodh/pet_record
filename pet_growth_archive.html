@@ -22,6 +22,30 @@ main{max-width:720px;margin:0 auto;padding:16px 14px 20px}.view{display:none}.vi
 .field input,.field select,.field textarea{max-width:100%;box-sizing:border-box}
 @media(max-width:600px){.sheet{max-width:100%;padding-left:18px;padding-right:18px}}
 .cal-weekdays,.cal-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:12px}.cal-weekdays span{text-align:center;font-size:11px;color:var(--muted)}.cal-day{border:1px solid transparent;border-radius:12px;background:transparent;min-width:0;min-height:52px;padding:5px 2px;color:var(--ink);display:flex;align-items:center;flex-direction:column;gap:3px;font-size:13px}.cal-day.today{border-color:#dfb95c}.cal-day.selected{background:#f6d579}.cal-day .dots{font-size:9px;color:#9a722a;white-space:nowrap;max-width:100%;overflow:hidden}.cal-day.empty{visibility:hidden}.daily-check{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid var(--line);font-size:15px}.daily-check input{width:22px;height:22px;accent-color:#d8a634;flex:0 0 auto}.daily-check span{flex:1}.daily-check.checked span{font-weight:700}.daily-add{margin-top:12px}
+
+/* iPhone Safari: date controls use the same width and alignment as other fields */
+.field input[type="date"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  -webkit-min-logical-width: 0;
+  text-align: left;
+  padding-left: 12px;
+  padding-right: 12px;
+  overflow: hidden;
+}
+.field input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  min-height: 1.45em;
+  width: 100%;
+}
+.field input[type="date"]::-webkit-datetime-edit {
+  text-align: left;
+  padding: 0;
+}
+.activity-dots{display:flex;justify-content:center;align-items:center;gap:2px;min-height:8px}.activity-dots i,.calendar-legend i,.activity-swatch{display:inline-block;width:7px;height:7px;border-radius:50%;flex:none}.activity-dots b{font-size:8px;color:var(--muted)}.calendar-legend{display:flex;flex-wrap:wrap;gap:7px 12px;margin-top:14px}.legend-item{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}.calendar-legend i{width:9px;height:9px}.activity-swatch{width:12px;height:12px}.activity-editor-row{display:flex;align-items:center;gap:8px;margin:10px 0}.activity-editor-row .activity-name{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--card);color:var(--ink)}.activity-editor-row .activity-color{width:40px;height:40px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--card);flex:none}.activity-editor-row .btn{flex:none;padding:10px 9px}
 </style>
 </head>
 <body>
@@ -54,7 +78,7 @@ main{max-width:720px;margin:0 auto;padding:16px 14px 20px}.view{display:none}.vi
   <div class="section-head"><h2>日常打卡</h2><button class="btn" id="manageActivities">管理活动</button></div>
   <div class="card">
    <div class="row"><button class="small-btn" id="prevMonth" aria-label="上个月">‹</button><strong id="calendarMonth"></strong><button class="small-btn" id="nextMonth" aria-label="下个月">›</button></div>
-   <div id="calendarGrid"></div>
+   <div id="calendarGrid"></div><div id="calendarLegend" class="calendar-legend"></div>
   </div>
   <div class="card"><div class="row"><h3 id="selectedDateTitle">当天活动</h3><button class="small-btn" id="jumpToday">回到今天</button></div><p class="hint">点击日期，再勾选当天完成的活动。记录独立保存，不会进入成长时间轴。</p><div id="dailyChecks"></div></div>
  </section>
@@ -122,7 +146,7 @@ function renderCats(){let box=$('#catChips');if(!db.cats.length){box.innerHTML='
 function renderHome(){let c=cat(),box=$('#homeContent');if(!c){box.innerHTML=`<div class="empty"><div class="emoji">🐱</div><h2>欢迎建立宠物档案</h2><p>记录生日、到家日、疫苗、驱虫和成长变化。</p><button class="btn primary" id="firstCat">＋ 添加第一只宠物</button></div>`;$('#firstCat').onclick=()=>openCatForm();return}
 let rec=sortedRecords(c),lastW=rec.find(r=>r.type==='weight'),next=rec.filter(r=>r.nextDate&&r.nextDate>=today()).sort((a,b)=>a.nextDate.localeCompare(b.nextDate)).slice(0,3);
 let age=ageText(c.birthDate),homeDays=c.homeDate?Math.max(0,daysBetween(c.homeDate,today())):null;
-box.innerHTML=`<div class="hero"><div class="hero-row"><div class="avatar">${c.photo?`<img src="${esc(c.photo)}" alt="宠物照片">`:petEmoji(c.species)}</div><div style="min-width:0"><h2>${esc(c.name)}</h2><p>${esc(c.species||'猫')} · ${esc(c.breed||'品种未填写')}${c.sex?' · '+esc(c.sex):''}</p><span class="pill">✨ ${c.birthDate?'已陪伴 '+(homeDays===null?'':homeDays+' 天'):'成长档案进行中'}</span></div><button class="small-btn" id="quickEdit" style="margin-left:auto;align-self:flex-start">编辑</button></div><div class="stats"><div class="stat"><div class="label">现在的年龄</div><div class="value">${esc(age)}</div></div><div class="stat"><div class="label">来到家的日子</div><div class="value">${c.homeDate?fmtDate(c.homeDate):'待记录'}</div></div><div class="stat"><div class="label">最近体重</div><div class="value">${lastW?Number(lastW.weight).toLocaleString()+'<span class="unit"> g</span>':'待称重'}</div></div></div></div>
+box.innerHTML=`<div class="hero"><div class="hero-row"><div class="avatar">${c.photo?`<img src="${esc(c.photo)}" alt="宠物照片">`:petEmoji(c.species)}</div><div style="min-width:0"><h2>${esc(c.name)}</h2><p>${esc(c.species||'猫')} · ${esc(c.breed||'品种未填写')}${c.sex?' · '+esc(({'公猫':'男','母猫':'女'}[c.sex]||c.sex)):''}</p><span class="pill">✨ ${c.birthDate?'已陪伴 '+(homeDays===null?'':homeDays+' 天'):'成长档案进行中'}</span></div><button class="small-btn" id="quickEdit" style="margin-left:auto;align-self:flex-start">编辑</button></div><div class="stats"><div class="stat"><div class="label">现在的年龄</div><div class="value">${esc(age)}</div></div><div class="stat"><div class="label">来到家的日子</div><div class="value">${c.homeDate?fmtDate(c.homeDate):'待记录'}</div></div><div class="stat"><div class="label">最近体重</div><div class="value">${lastW?Number(lastW.weight).toLocaleString()+'<span class="unit"> g</span>':'待称重'}</div></div></div></div>
 <div class="actions"><button class="action" data-add="weight"><span>⚖️</span>记录体重</button><button class="action" data-add="vaccine"><span>💉</span>疫苗</button><button class="action" data-add="deworm"><span>🪱</span>驱虫</button><button class="action" data-add="event"><span>🌟</span>成长节点</button></div>
 <div class="section-head"><h2>最近发生</h2><button class="small-btn" data-goto="timeline">全部时间轴 →</button></div>
 ${rec.length?`<div class="card">${rec.slice(0,4).map(r=>recordCard(r,true)).join('')}</div>`:`<div class="card empty"><div class="emoji">📔</div><strong>第一条记录，等你来写</strong><p>可以从出生日期、到家日期或今天的体重开始。</p><button class="btn primary" data-add="event">添加成长记录</button></div>`}
@@ -138,24 +162,27 @@ function drawChart(ws){let canvas=$('#weightCanvas');if(!canvas)return;let rect=
 function renderHealth(){let c=cat();$('#healthFilters').innerHTML=['all','vaccine','deworm','sterilize','visit','medicine'].map(k=>`<button class="tab ${healthFilter===k?'active':''}" data-hfilter="${k}">${k==='all'?'全部':types[k]}</button>`).join('');$('#healthFilters').querySelectorAll('[data-hfilter]').forEach(b=>b.onclick=()=>{healthFilter=b.dataset.hfilter;renderHealth()});let box=$('#healthContent');if(!c){box.innerHTML=emptyPrompt('先添加一只宠物。');return}let rs=sortedRecords(c).filter(r=>['vaccine','deworm','sterilize','visit','medicine'].includes(r.type)&&(healthFilter==='all'||r.type===healthFilter));let upcoming=rs.filter(r=>r.nextDate).sort((a,b)=>a.nextDate.localeCompare(b.nextDate));box.innerHTML=`<div class="notice" style="margin-bottom:12px">下次疫苗、驱虫或复查日期由你手动填写。请根据兽医建议和产品说明设置，不要仅依赖网页自动推算。</div>${upcoming.length?`<div class="section-head"><h2>下次安排</h2></div><div class="card">${upcoming.map(r=>`<div class="row-start" style="padding:7px 0"><div class="record-icon">${icons[r.type]}</div><div style="flex:1"><div class="record-title">${esc(r.nextLabel||('下次'+types[r.type]))}</div><div class="record-meta">${fmtDate(r.nextDate)} · ${esc(r.title||types[r.type])}</div></div><span class="pill">${daysBetween(today(),r.nextDate)===0?'今天':daysBetween(today(),r.nextDate)>0?`${daysBetween(today(),r.nextDate)}天后`:'已过期'}</span></div>`).join('')}</div>`:''}<div class="section-head"><h2>健康记录</h2><span class="sub">${rs.length} 条</span></div>${rs.length?`<div class="card">${rs.map(r=>recordCard(r)).join('')}</div>`:emptyPrompt('还没有健康记录。可记录疫苗名称、驱虫产品、用药或就诊情况。')}`}
 
 function activityNames(c){if(!Array.isArray(c.activities))c.activities=['喂食','喂药'];return c.activities}
+const ACTIVITY_COLORS=['#e9a84b','#6ba4d9','#7bb58b','#c18fd1','#e98686','#71b9b3','#a2a66a','#df93ae'];
+function activityColor(c,name){let map=c.activityColors||{};let idx=activityNames(c).indexOf(name);return map[name]||ACTIVITY_COLORS[(idx<0?0:idx)%ACTIVITY_COLORS.length]}
 function dailyData(c){if(!c.daily||typeof c.daily!=='object'||Array.isArray(c.daily))c.daily={};return c.daily}
 function renderCalendar(){
  let c=cat(),grid=$('#calendarGrid'),checks=$('#dailyChecks');
  $('#calendarMonth').textContent=displayMonth.replace('-','年')+'月';
  $('#selectedDateTitle').textContent=selectedDay+' · 日常活动';
- if(!c){grid.innerHTML='<div class="empty">请先添加宠物档案</div>';checks.innerHTML='';return}
+ if(!c){grid.innerHTML='<div class="empty">请先添加宠物档案</div>';checks.innerHTML='';$('#calendarLegend').innerHTML='';return}
  let [year,month]=displayMonth.split('-').map(Number);
  let first=new Date(year,month-1,1).getDay(),last=new Date(year,month,0).getDate();
  let html='<div class="cal-weekdays">'+['日','一','二','三','四','五','六'].map(x=>'<span>'+x+'</span>').join('')+'</div><div class="cal-days">';
  for(let i=0;i<first;i++)html+='<span class="cal-day empty"></span>';
  for(let d=1;d<=last;d++){
-   let date=displayMonth+'-'+String(d).padStart(2,'0'),done=Object.values(dailyData(c)[date]||{}).filter(Boolean).length;
-   html+=`<button class="cal-day ${date===today()?'today':''} ${date===selectedDay?'selected':''}" data-day="${date}" aria-label="${date}，已完成${done}项"><span>${d}</span><span class="dots">${done?'●'.repeat(Math.min(done,4)):''}</span></button>`;
+   let date=displayMonth+'-'+String(d).padStart(2,'0'),completed=activityNames(c).filter(name=>dailyData(c)[date]?.[name]),done=completed.length;
+   html+=`<button class="cal-day ${date===today()?'today':''} ${date===selectedDay?'selected':''}" data-day="${date}" aria-label="${date}，已完成${done}项"><span>${d}</span><span class="activity-dots">${completed.slice(0,4).map(name=>`<i style="background:${activityColor(c,name)}"></i>`).join('')}${done>4?'<b>+</b>':''}</span></button>`;
  }
  grid.innerHTML=html+'</div>';
  grid.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{selectedDay=b.dataset.day;renderCalendar()});
  let day=dailyData(c)[selectedDay]||{},activities=activityNames(c);
- checks.innerHTML=activities.length?activities.map((name,i)=>`<label class="daily-check ${day[name]?'checked':''}"><input type="checkbox" data-activity-index="${i}" ${day[name]?'checked':''}><span>${esc(name)}</span><span class="muted">${day[name]?'已完成':'未完成'}</span></label>`).join(''):'<p class="hint">尚未设置活动，请点击右上角管理活动。</p>';
+ checks.innerHTML=activities.length?activities.map((name,i)=>`<label class="daily-check ${day[name]?'checked':''}"><input type="checkbox" style="accent-color:${activityColor(c,name)}" data-activity-index="${i}" ${day[name]?'checked':''}><i class="activity-swatch" style="background:${activityColor(c,name)}"></i><span>${esc(name)}</span><span class="muted">${day[name]?'已完成':'未完成'}</span></label>`).join(''):'<p class="hint">尚未设置活动，请点击右上角管理活动。</p>';
+ $('#calendarLegend').innerHTML=activities.map(name=>`<span class="legend-item"><i style="background:${activityColor(c,name)}"></i>${esc(name)}</span>`).join('');
  checks.querySelectorAll('[data-activity-index]').forEach(b=>b.onchange=()=>{
    let key=activities[Number(b.dataset.activityIndex)],entry=dailyData(c)[selectedDay]||{};
    if(b.checked)entry[key]=true;else delete entry[key];
@@ -169,28 +196,27 @@ function shiftMonth(delta){
 }
 function manageActivities(){
  let c=cat();if(!c){openCatForm();return}
- let names=activityNames(c);
- openModal('管理日常活动',`<p class="hint">每只宠物可以设置自己的活动，如喂食、喂药、换水、清洁。修改名称会同步更新该宠物以前的打卡记录。</p>
- <div id="activityEditor">${names.map((name,i)=>`<div class="row" style="margin:8px 0"><input data-activity-edit="${i}" value="${esc(name)}" maxlength="24" style="flex:1;min-width:0;padding:10px;border:1px solid var(--line);border-radius:10px"><button class="btn danger" data-remove-activity="${i}">删除</button></div>`).join('')}</div>
- <button class="btn" id="addActivity">＋ 添加活动</button>
- <div class="sheet-actions"><button class="btn" id="cancelActivities">取消</button><button class="btn primary" id="saveActivities">保存</button></div>`);
+ let names=activityNames(c).slice(), colors={...(c.activityColors||{})};
+ openModal('管理日常活动',`<p class="hint">可添加活动并选择专属颜色。不同活动会在日历日期下显示对应彩色圆点。修改名称会保留原有打卡记录。</p><div id="activityEditor"></div><button class="btn" id="addActivity">＋ 添加活动</button><div class="sheet-actions"><button class="btn" id="cancelActivities">取消</button><button class="btn primary" id="saveActivities">保存</button></div>`);
  let editor=$('#activityEditor');
- const wire=()=>editor.querySelectorAll('[data-remove-activity]').forEach(b=>b.onclick=()=>{b.parentElement.remove()});
- wire();
- $('#addActivity').onclick=()=>{let row=document.createElement('div');row.className='row';row.style.margin='8px 0';row.innerHTML='<input data-activity-edit="new" maxlength="24" placeholder="活动名称" style="flex:1;min-width:0;padding:10px;border:1px solid var(--line);border-radius:10px"><button class="btn danger" type="button">删除</button>';row.querySelector('button').onclick=()=>row.remove();editor.appendChild(row)};
+ function addRow(name='',oldIndex='new',color=ACTIVITY_COLORS[editor.children.length%ACTIVITY_COLORS.length]){
+   let row=document.createElement('div');row.className='activity-editor-row';
+   row.innerHTML=`<input type="color" aria-label="活动颜色" value="${color}" class="activity-color"><input class="activity-name" maxlength="24" placeholder="例如：喂食、喂药、换水" value="${esc(name)}"><button type="button" class="btn danger">删除</button>`;
+   row.dataset.oldIndex=oldIndex;row.querySelector('button').onclick=()=>row.remove();editor.appendChild(row);
+ }
+ names.forEach((name,i)=>addRow(name,String(i),activityColor(c,name)));
+ $('#addActivity').onclick=()=>{addRow();editor.lastElementChild.querySelector('.activity-name').focus()};
  $('#cancelActivities').onclick=closeModal;
  $('#saveActivities').onclick=()=>{
-   let entries=[...editor.querySelectorAll('[data-activity-edit]')].map(input=>({old:input.dataset.activityEdit==='new'?null:names[Number(input.dataset.activityEdit)],name:input.value.trim()})).filter(x=>x.name);
-   let newNames=entries.map(x=>x.name);
-   if(new Set(newNames).size!==newNames.length){toast('活动名称不能重复');return}
-   let oldDaily=dailyData(c),newDaily={};
-   for(let [date,day] of Object.entries(oldDaily)){
-     let next={};
-     for(let item of entries)if(item.old&&day[item.old])next[item.name]=true;
-     if(Object.keys(next).length)newDaily[date]=next;
-   }
-   if(Object.keys(oldDaily).length&&names.some(n=>!entries.some(e=>e.old===n))&&!confirm('删除活动会一并删除该活动过去的打卡记录，确定吗？'))return;
-   c.activities=newNames;c.daily=newDaily;closeModal();save();toast('活动已更新');
+   let rows=[...editor.children];
+   if(rows.some(row=>!row.querySelector('.activity-name').value.trim())){toast('请填写活动名称，或删除空白活动');return}
+   let entries=rows.map(row=>({old:row.dataset.oldIndex==='new'?null:names[Number(row.dataset.oldIndex)],name:row.querySelector('.activity-name').value.trim(),color:row.querySelector('.activity-color').value}));
+   if(new Set(entries.map(x=>x.name)).size!==entries.length){toast('活动名称不能重复');return}
+   let removed=names.filter(name=>!entries.some(x=>x.old===name));
+   if(removed.some(name=>Object.values(dailyData(c)).some(day=>day[name]))&&!confirm('删除活动将删除它过去的打卡记录，确定吗？'))return;
+   let nextDaily={};for(let [date,day] of Object.entries(dailyData(c))){let next={};for(let item of entries){if(item.old&&day[item.old])next[item.name]=true}if(Object.keys(next).length)nextDaily[date]=next}
+   c.activities=entries.map(x=>x.name);c.activityColors=Object.fromEntries(entries.map(x=>[x.name,x.color]));c.daily=nextDaily;
+   closeModal();save();toast('活动及颜色已保存');
  };
 }
 $('#prevMonth').onclick=()=>shiftMonth(-1);
@@ -201,8 +227,8 @@ function showView(name){activeView=name;$$('.view').forEach(v=>v.classList.toggl
 function openModal(title,html){$('#modalTitle').textContent=title;$('#modalBody').innerHTML=html;$('#modal').classList.add('open');document.body.style.overflow='hidden'}
 function closeModal(){$('#modal').classList.remove('open');document.body.style.overflow=''}
 function field(label,name,value='',type='text',extra=''){return `<div class="field"><label for="${name}">${label}</label><input id="${name}" name="${name}" type="${type}" value="${esc(value)}" ${extra}></div>`}
-function openCatForm(id=null){let c=id?db.cats.find(x=>x.id===id):null;openModal(c?'编辑宠物档案':'添加宠物',`<form id="catForm"><div class="field"><label>宠物名字 *</label><input name="name" required maxlength="40" placeholder="例如：宠物" value="${esc(c?.name||'')}"></div><div class="field"><label>宠物类型</label><select name="species">${['猫','狗','兔','仓鼠','豚鼠','鸟','爬宠','鱼','其他'].map(x=>`<option value="${x}" ${x===(c?.species||'猫')?'selected':''}>${x}</option>`).join('')}</select></div><div class="form-grid">${field('出生日期','birthDate',c?.birthDate||'','date')}${field('到家日期','homeDate',c?.homeDate||'','date')}</div><div class="form-grid"><div class="field"><label>品种</label><input name="breed" value="${esc(c?.breed||'')}" placeholder="例如：暹罗猫"></div><div class="field"><label>性别</label><select name="sex"><option value="">未填写</option><option ${c?.sex==='公猫'?'selected':''}>公猫</option><option ${c?.sex==='母猫'?'selected':''}>母猫</option><option ${c?.sex==='未知'?'selected':''}>未知</option></select></div></div><div class="field"><label>照片（可选，选择后保存在本机）</label><input name="photo" id="catPhoto" type="file" accept="image/*"><div class="hint">建议使用较小的照片，过大的图片可能占用较多浏览器存储空间。</div></div><div class="field"><label>备注</label><textarea name="note" placeholder="性格、来源、特别习惯等">${esc(c?.note||'')}</textarea></div><div class="sheet-actions"><button type="button" class="btn" id="cancelCat">取消</button><button type="submit" class="btn primary">保存档案</button></div>${c?`<button type="button" class="btn danger full" id="deleteCat" style="margin-top:10px">删除这只宠物及其全部记录</button>`:''}</form>`);
-$('#cancelCat').onclick=closeModal;$('#catForm').onsubmit=async e=>{e.preventDefault();let f=new FormData(e.target),photo=c?.photo||'';let file=$('#catPhoto').files[0];if(file){try{photo=await compressImage(file)}catch(err){toast('照片读取失败');return}}let obj={id:c?.id||uid(),name:String(f.get('name')).trim(),species:String(f.get('species')||'猫'),birthDate:f.get('birthDate'),homeDate:f.get('homeDate'),breed:String(f.get('breed')).trim(),sex:f.get('sex'),note:String(f.get('note')).trim(),photo,records:c?.records||[],createdAt:c?.createdAt||new Date().toISOString()};if(!obj.name){toast('请填写宠物名字');return}if(c){db.cats=db.cats.map(x=>x.id===c.id?obj:x)}else{db.cats.push(obj);currentId=obj.id}closeModal();save();toast('宠物档案已保存')};
+function openCatForm(id=null){let c=id?db.cats.find(x=>x.id===id):null;openModal(c?'编辑宠物档案':'添加宠物',`<form id="catForm"><div class="field"><label>宠物名字 *</label><input name="name" required maxlength="40" placeholder="例如：宠物" value="${esc(c?.name||'')}"></div><div class="field"><label>宠物类型</label><select name="species">${['猫','狗','兔','仓鼠','豚鼠','鸟','爬宠','鱼','其他'].map(x=>`<option value="${x}" ${x===(c?.species||'猫')?'selected':''}>${x}</option>`).join('')}</select></div><div class="form-grid">${field('出生日期','birthDate',c?.birthDate||'','date')}${field('到家日期','homeDate',c?.homeDate||'','date')}</div><div class="form-grid"><div class="field"><label>品种</label><input name="breed" value="${esc(c?.breed||'')}" placeholder="例如：暹罗猫"></div><div class="field"><label>性别</label><select name="sex"><option value="">未填写</option><option value="男" ${['男','公猫'].includes(c?.sex)?'selected':''}>男</option><option value="女" ${['女','母猫'].includes(c?.sex)?'selected':''}>女</option><option ${c?.sex==='未知'?'selected':''}>未知</option></select></div></div><div class="field"><label>照片（可选，选择后保存在本机）</label><input name="photo" id="catPhoto" type="file" accept="image/*"><div class="hint">建议使用较小的照片，过大的图片可能占用较多浏览器存储空间。</div></div><div class="field"><label>备注</label><textarea name="note" placeholder="性格、来源、特别习惯等">${esc(c?.note||'')}</textarea></div><div class="sheet-actions"><button type="button" class="btn" id="cancelCat">取消</button><button type="submit" class="btn primary">保存档案</button></div>${c?`<button type="button" class="btn danger full" id="deleteCat" style="margin-top:10px">删除这只宠物及其全部记录</button>`:''}</form>`);
+$('#cancelCat').onclick=closeModal;$('#catForm').onsubmit=async e=>{e.preventDefault();let f=new FormData(e.target),photo=c?.photo||'';let file=$('#catPhoto').files[0];if(file){try{photo=await compressImage(file)}catch(err){toast('照片读取失败');return}}let obj={...(c||{}),id:c?.id||uid(),name:String(f.get('name')).trim(),species:String(f.get('species')||'猫'),birthDate:f.get('birthDate'),homeDate:f.get('homeDate'),breed:String(f.get('breed')).trim(),sex:({'公猫':'男','母猫':'女'}[f.get('sex')]||f.get('sex')),note:String(f.get('note')).trim(),photo,records:c?.records||[],createdAt:c?.createdAt||new Date().toISOString()};if(!obj.name){toast('请填写宠物名字');return}if(c){db.cats=db.cats.map(x=>x.id===c.id?obj:x)}else{db.cats.push(obj);currentId=obj.id}closeModal();save();toast('宠物档案已保存')};
 if(c)$('#deleteCat').onclick=()=>{if(confirm(`确定删除“${c.name}”及其全部记录吗？此操作无法撤销。`)){db.cats=db.cats.filter(x=>x.id!==c.id);currentId=db.cats[0]?.id||null;closeModal();save();toast('档案已删除')}};
 }
 function compressImage(file){return new Promise((resolve,reject)=>{let reader=new FileReader();reader.onerror=reject;reader.onload=()=>{let img=new Image();img.onerror=reject;img.onload=()=>{let max=420,scale=Math.min(1,max/Math.max(img.width,img.height)),can=document.createElement('canvas');can.width=Math.round(img.width*scale);can.height=Math.round(img.height*scale);can.getContext('2d').drawImage(img,0,0,can.width,can.height);resolve(can.toDataURL('image/jpeg',.65))};img.src=reader.result};reader.readAsDataURL(file)})}
