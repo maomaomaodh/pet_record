@@ -158,7 +158,43 @@ function recordCard(r,compact=false){let detail=[];if(r.type==='weight'&&r.weigh
 function renderTimeline(){let c=cat();$('#timelineFilters').innerHTML=['all','birth','home','vaccine','deworm','weight','sterilize','visit','medicine','event'].map(k=>`<button class="tab ${timelineFilter===k?'active':''}" data-tfilter="${k}">${k==='all'?'全部':types[k]}</button>`).join('');$('#timelineFilters').querySelectorAll('[data-tfilter]').forEach(b=>b.onclick=()=>{timelineFilter=b.dataset.tfilter;renderTimeline()});let box=$('#timelineContent');if(!c){box.innerHTML=emptyPrompt('先添加一只宠物，再开始记录。');return}let rs=sortedRecords(c).filter(r=>timelineFilter==='all'||r.type===timelineFilter);box.innerHTML=rs.length?`<div class="card"><div class="timeline">${rs.map(r=>`<div class="timeline-item"><div class="date">${fmtDate(r.date)}</div><h3>${icons[r.type]||'📌'} ${esc(r.title||types[r.type]||'成长记录')}</h3>${r.weight?`<p>体重：${esc(r.weight)} g</p>`:''}${r.product?`<p>${esc(r.product)}${r.dose?' · '+esc(r.dose):''}</p>`:''}${r.note?`<p>${esc(r.note)}</p>`:''}${r.photo?`<img src="${esc(r.photo)}" alt="事件照片" class="event-photo" loading="lazy">`:''}${r.nextDate?`<p>下次：${fmtDate(r.nextDate)}${r.nextLabel?' · '+esc(r.nextLabel):''}</p>`:''}<div style="margin-top:6px"><button class="small-btn" data-edit-record="${esc(r.id)}">编辑记录</button></div></div>`).join('')}</div></div>`:emptyPrompt('这里还没有这类记录，可以点右上角添加。')}
 function emptyPrompt(s){return `<div class="card empty"><div class="emoji">🐾</div><p>${esc(s)}</p><button class="btn primary" data-add="event">＋ 添加记录</button></div>`}
 function renderWeight(){let c=cat(),box=$('#weightContent');if(!c){box.innerHTML=emptyPrompt('先添加宠物档案。');return}let ws=(c.records||[]).filter(r=>r.type==='weight'&&Number(r.weight)>0).sort((a,b)=>a.date.localeCompare(b.date));let latest=ws[ws.length-1],prev=ws[ws.length-2],diff=latest&&prev?Number(latest.weight)-Number(prev.weight):null;box.innerHTML=`<div class="card"><div class="row"><div><div class="muted">最近一次体重</div><div style="font-size:28px;font-weight:850;margin-top:3px">${latest?Number(latest.weight).toLocaleString()+'<span style="font-size:14px"> g</span>':'--'}</div><div class="muted">${latest?fmtDate(latest.date):'记录后显示成长趋势'}</div></div>${diff===null?'':`<div style="text-align:right"><div class="muted">较上次</div><div style="font-size:18px;font-weight:800;color:${diff>=0?'var(--green)':'var(--red)'}">${diff>0?'+':''}${diff} g</div></div>`}</div><div class="chart-wrap"><canvas id="weightCanvas" aria-label="体重变化曲线"></canvas></div><p class="hint">图表仅连接你记录的称重数据，不提供标准体重诊断。尽量在相近条件下称重，若体重突然变化或食欲、精神异常，请咨询兽医。</p></div><div class="section-head"><h2>称重记录</h2><span class="sub">${ws.length} 条</span></div>${ws.length?`<div class="card">${ws.slice().reverse().map(r=>recordCard(r)).join('')}</div>`:emptyPrompt('记录几次体重后，这里就会出现成长曲线。')}`;if(ws.length)drawChart(ws)}
-function drawChart(ws){let canvas=$('#weightCanvas');if(!canvas)return;let rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;canvas.width=Math.max(300,rect.width*dpr);canvas.height=Math.max(180,rect.height*dpr);let ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);let w=canvas.width/dpr,h=canvas.height/dpr,p={l:40,r:14,t:18,b:32},vals=ws.map(r=>Number(r.weight)),min=Math.min(...vals),max=Math.max(...vals);if(min===max){min=Math.max(0,min*0.9);max=max*1.1||1}let pad=(max-min)*.15;min=Math.max(0,min-pad);max+=pad;let x=i=>p.l+(ws.length===1?0.5:i/(ws.length-1))*(w-p.l-p.r),y=v=>p.t+(max-v)/(max-min)*(h-p.t-p.b);ctx.strokeStyle='#efe2c8';ctx.lineWidth=1;ctx.fillStyle='#9b896f';ctx.font='10px sans-serif';for(let i=0;i<4;i++){let v=min+(max-min)*i/3,yy=y(v);ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(w-p.r,yy);ctx.stroke();ctx.fillText(Math.round(v),3,yy+3)}ctx.strokeStyle='#dba93f';ctx.lineWidth=2.5;ctx.beginPath();ws.forEach((r,i)=>i?ctx.lineTo(x(i),y(Number(r.weight))):ctx.moveTo(x(i),y(Number(r.weight))));ctx.stroke();ws.forEach((r,i)=>{ctx.fillStyle='#dba93f';ctx.beginPath();ctx.arc(x(i),y(Number(r.weight)),4,0,Math.PI*2);ctx.fill()});ctx.fillStyle='#9b896f';let labels=ws.length>5?[ws[0],ws[Math.floor((ws.length-1)/2)],ws[ws.length-1]]:ws;labels.forEach(r=>{let i=ws.indexOf(r);ctx.fillText((r.date||'').slice(5),Math.min(w-35,Math.max(p.l-3,x(i)-15)),h-9)})}
+function drawChart(ws){
+ let canvas=$('#weightCanvas');if(!canvas)return;
+ let rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+ canvas.width=Math.max(300,Math.round(rect.width*dpr));
+ canvas.height=Math.max(180,Math.round(rect.height*dpr));
+ let ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+ let w=canvas.width/dpr,h=canvas.height/dpr,p={l:43,r:18,t:18,b:34};
+ let vals=ws.map(r=>Number(r.weight)),min=Math.min(...vals),max=Math.max(...vals);
+ if(min===max){min=Math.max(0,min*.9);max=max*1.1||1}
+ let pad=(max-min)*.15;min=Math.max(0,min-pad);max+=pad;
+ // Use real calendar-day distances instead of equal spacing per measurement.
+ // UTC avoids daylight-saving changes shifting a date's horizontal position.
+ let times=ws.map(r=>Date.parse(r.date+'T00:00:00Z'));
+ let first=Math.min(...times),last=Math.max(...times),span=last-first;
+ let plotWidth=w-p.l-p.r;
+ let x=i=>p.l+(span===0?.5:(times[i]-first)/span)*plotWidth;
+ let y=v=>p.t+(max-v)/(max-min)*(h-p.t-p.b);
+ ctx.strokeStyle='#efe2c8';ctx.lineWidth=1;ctx.fillStyle='#9b896f';ctx.font='10px sans-serif';
+ for(let i=0;i<4;i++){let v=min+(max-min)*i/3,yy=y(v);ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(w-p.r,yy);ctx.stroke();ctx.fillText(Math.round(v),3,yy+3)}
+ ctx.strokeStyle='#dba93f';ctx.lineWidth=2.5;ctx.beginPath();
+ ws.forEach((r,i)=>i?ctx.lineTo(x(i),y(Number(r.weight))):ctx.moveTo(x(i),y(Number(r.weight))));
+ ctx.stroke();
+ ws.forEach((r,i)=>{ctx.fillStyle='#dba93f';ctx.beginPath();ctx.arc(x(i),y(Number(r.weight)),4,0,Math.PI*2);ctx.fill()});
+ ctx.fillStyle='#9b896f';ctx.textBaseline='alphabetic';
+ // Show calendar ticks at actual positions, independent of measurement count.
+ if(span===0){
+   ctx.textAlign='center';ctx.fillText(ws[0].date.slice(5),x(0),h-9);
+ }else{
+   let mid=first+span/2;
+   let ticks=[first,mid,last];
+   let format=ms=>new Date(ms).toISOString().slice(5,10);
+   ctx.textAlign='left';ctx.fillText(format(ticks[0]),p.l,h-9);
+   ctx.textAlign='center';ctx.fillText(format(ticks[1]),p.l+plotWidth/2,h-9);
+   ctx.textAlign='right';ctx.fillText(format(ticks[2]),w-p.r,h-9);
+ }
+ ctx.textAlign='start';
+}
 function renderHealth(){let c=cat();$('#healthFilters').innerHTML=['all','vaccine','deworm','sterilize','visit','medicine'].map(k=>`<button class="tab ${healthFilter===k?'active':''}" data-hfilter="${k}">${k==='all'?'全部':types[k]}</button>`).join('');$('#healthFilters').querySelectorAll('[data-hfilter]').forEach(b=>b.onclick=()=>{healthFilter=b.dataset.hfilter;renderHealth()});let box=$('#healthContent');if(!c){box.innerHTML=emptyPrompt('先添加一只宠物。');return}let rs=sortedRecords(c).filter(r=>['vaccine','deworm','sterilize','visit','medicine'].includes(r.type)&&(healthFilter==='all'||r.type===healthFilter));let upcoming=rs.filter(r=>r.nextDate).sort((a,b)=>a.nextDate.localeCompare(b.nextDate));box.innerHTML=`<div class="notice" style="margin-bottom:12px">下次疫苗、驱虫或复查日期由你手动填写。请根据兽医建议和产品说明设置，不要仅依赖网页自动推算。</div>${upcoming.length?`<div class="section-head"><h2>下次安排</h2></div><div class="card">${upcoming.map(r=>`<div class="row-start" style="padding:7px 0"><div class="record-icon">${icons[r.type]}</div><div style="flex:1"><div class="record-title">${esc(r.nextLabel||('下次'+types[r.type]))}</div><div class="record-meta">${fmtDate(r.nextDate)} · ${esc(r.title||types[r.type])}</div></div><span class="pill">${daysBetween(today(),r.nextDate)===0?'今天':daysBetween(today(),r.nextDate)>0?`${daysBetween(today(),r.nextDate)}天后`:'已过期'}</span></div>`).join('')}</div>`:''}<div class="section-head"><h2>健康记录</h2><span class="sub">${rs.length} 条</span></div>${rs.length?`<div class="card">${rs.map(r=>recordCard(r)).join('')}</div>`:emptyPrompt('还没有健康记录。可记录疫苗名称、驱虫产品、用药或就诊情况。')}`}
 
 function activityNames(c){if(!Array.isArray(c.activities))c.activities=['喂食','喂药'];return c.activities}
